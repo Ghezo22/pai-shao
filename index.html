@@ -38,12 +38,26 @@ const glyphOk=types.every(t=>typeof glyph[t]==='string'&&glyph[t].length>0)&&new
 const moves=pieces.flatMap(p=>gen(p).map(m=>({p,m})));
 const movesOnBoard=moves.every(({m})=>valid(m.r,m.c));
 const noFriendlyCaptures=moves.every(({p,m})=>{const q=at(m.r,m.c);return !q||q.owner!==p.owner});
+const savedPieces=pieces,savedTurn=turn;
+let blockedPath=false,enemyCaptureStopsRay=false,enemyCaptureAllowed=false,stepMoveWorks=false;
+try{
+pieces=[{owner:1,type:'Water',r:8,c:8},{owner:1,type:'Jade',r:8,c:9},{owner:2,type:'Lotus',r:8,c:10}];
+const blocked=gen(pieces[0]);blockedPath=!blocked.some(m=>m.r===8&&m.c>=9);
+pieces=[{owner:1,type:'Water',r:8,c:8},{owner:2,type:'Lotus',r:8,c:10}];
+const captureMoves=gen(pieces[0]);enemyCaptureAllowed=captureMoves.some(m=>m.r===8&&m.c===10);enemyCaptureStopsRay=!captureMoves.some(m=>m.r===8&&m.c===11);
+pieces=[{owner:1,type:'Avatar',r:8,c:8}];
+stepMoveWorks=gen(pieces[0]).some(m=>m.r===8&&m.c===9)&&!gen(pieces[0]).some(m=>m.r===8&&m.c===10);
+}finally{pieces=savedPieces;turn=savedTurn}
 const tests=[
 {name:'256 playable squares',pass:validSquares===256,detail:String(validSquares)},
 {name:'24 pieces placed on valid squares',pass:setupOk,detail:pieces.length+' pieces'},
 {name:'12 distinct piece symbols',pass:glyphOk,detail:new Set(types.map(t=>glyph[t])).size+' unique glyphs'},
 {name:'Generated moves stay on board',pass:movesOnBoard,detail:moves.length+' legal candidates checked'},
-{name:'Moves never target friendly pieces',pass:noFriendlyCaptures,detail:'all generated candidates checked'}
+{name:'Moves never target friendly pieces',pass:noFriendlyCaptures,detail:'all generated candidates checked'},
+{name:'Friendly pieces block sliding paths',pass:blockedPath,detail:blockedPath?'passed':'failed'},
+{name:'Enemy pieces can be captured',pass:enemyCaptureAllowed,detail:enemyCaptureAllowed?'passed':'failed'},
+{name:'Sliding capture stops at target',pass:enemyCaptureStopsRay,detail:enemyCaptureStopsRay?'passed':'failed'},
+{name:'One-step movement respects range',pass:stepMoveWorks,detail:stepMoveWorks?'passed':'failed'}
 ];
 return {validSquares,tests,passed:tests.filter(t=>t.pass).length,total:tests.length}
 }
